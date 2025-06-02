@@ -1,0 +1,64 @@
+services:
+  mysql_tests_container:
+    image: mysql:8.0
+    container_name: mysql_tests_container
+    restart: always
+    environment:
+      MYSQL_DATABASE: db_testes
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: java_testes_app
+    depends_on:
+      mysql_tests_container:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    networks:
+      - app-network
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql_tests_container:3306/db_testes?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root123
+
+
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile.jenkins
+    image: minha-jenkins:2.414.2-jdk17
+    container_name: jenkins-server
+    privileged: true
+    user: root
+    ports:
+      - 8081:8080
+      - 50000:50000
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    networks:
+      - app-network
+
+
+volumes:
+  mysql_data:
+  jenkins_home:
+
+networks:
+  app-network:
+    driver: bridge

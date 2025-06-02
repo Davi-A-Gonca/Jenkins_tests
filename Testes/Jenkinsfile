@@ -1,0 +1,37 @@
+pipeline {
+  agent {
+    label 'docker-agent-test'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        // Faz checkout do código que contém o pom.xml e a pasta src/
+        checkout scm
+      }
+    }
+
+    stage('Build & Run Tests') {
+      steps {
+        script {
+          // Executa clean e depois roda todos os testes unitários
+          sh 'mvn clean test'
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      // Independentemente de sucesso ou falha, imprime no log o resultado dos testes
+      echo "===== Fim da execução de mvn clean test ====="
+    }
+    // Se quiser, em casos de falha pode interromper o build
+    failure {
+      echo "Os testes falharam. Verifique o log para detalhes."
+    }
+    success {
+      echo "Todos os testes passaram com sucesso."
+    }
+  }
+}

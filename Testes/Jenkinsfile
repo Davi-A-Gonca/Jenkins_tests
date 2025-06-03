@@ -13,9 +13,11 @@ pipeline {
 
     stage('Build & Run Tests') {
       steps {
-        script {
-          // Executa clean e depois roda todos os testes unitários
-          sh 'mvn clean test'
+        script 
+          dir('Testes'){
+            // Executa clean e depois roda todos os testes unitários
+            sh 'mvn clean test'
+          }
         }
       }
     }

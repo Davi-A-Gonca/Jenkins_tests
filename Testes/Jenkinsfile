@@ -1,21 +1,41 @@
 pipeline {
-  agent {
-    label 'docker-agent-test'
+  agent { 
+    label 'docker-agent-test' 
   }
 
   stages {
+    // Checka se repositório existe
     stage('Checkout') {
       steps {
-        // Faz checkout do código que contém o pom.xml e a pasta src/
         checkout scm
       }
     }
 
-    stage('Build & Run Tests') {
+    // Verifica a estrutura de pastas
+    stage('Verify Workspace Structure') {
       steps {
-        dir('Testes'){
-          // Executa clean e depois roda todos os testes unitários
-          sh 'mvn clean test'
+        echo "=== Conteúdo do workspace (raiz) ==="
+        sh 'ls -R .'
+      }
+    }
+
+    // Lista de arquivos de teste Java
+    stage('Listar Arquivos de Teste') {
+      steps {
+        dir('Testes') {
+          echo "=== Arquivos em Testes/src/test/java ==="
+          sh 'find src/test/java -type f -name "*Test.java"'
+        }
+      }
+    }
+
+    // Build e execução de todos os testes, incluindo tudo que termine em *Test.java
+    stage('Build & Run All Tests') {
+      steps {
+        dir('Testes') {
+          echo "Executando mvn clean test com inclusão explícita de *Test.java"
+          // -Dsurefire.includes=**/*Test.java força o Surefire a rodar todas as classes terminadas em Test.java
+          sh 'mvn clean test -Dsurefire.includes="**/*Test.java"'
         }
       }
     }
@@ -23,12 +43,10 @@ pipeline {
 
   post {
     always {
-      // Independentemente de sucesso ou falha, imprime no log o resultado dos testes
       echo "===== Fim da execução de mvn clean test ====="
     }
-    // Se quiser, em casos de falha pode interromper o build
     failure {
-      echo "Os testes falharam. Verifique o log para detalhes."
+      echo "Algum teste falhou. Verifique o console para detalhes."
     }
     success {
       echo "Todos os testes passaram com sucesso."

@@ -22,13 +22,13 @@ pipeline {
                 .replace(".java", "")
                 .replace("/", ".")
 
-              echo "🟦 Iniciando teste: ${classe}"
+              echo "Iniciando teste: ${classe}"
 
               sh """
                 mvn -Dtest=${classe} test
               """
 
-              echo "✅ Finalizado teste: ${classe}"
+              echo "Finalizado teste: ${classe}"
             }
           }
         }

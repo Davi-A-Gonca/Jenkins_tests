@@ -1,41 +1,36 @@
 pipeline {
-  agent { 
-    label 'docker-agent-test' 
-  }
+  agent { label 'docker-agent-test' }
 
   stages {
-    // Checka se repositório existe
     stage('Checkout') {
       steps {
         checkout scm
       }
     }
 
-    // Verifica a estrutura de pastas
-    stage('Verify Workspace Structure') {
-      steps {
-        echo "=== Conteúdo do workspace (raiz) ==="
-        sh 'ls -R .'
-      }
-    }
-
-    // Lista de arquivos de teste Java
-    stage('Listar Arquivos de Teste') {
+    stage('Listar e Executar Testes Individualmente') {
       steps {
         dir('Testes') {
-          echo "=== Arquivos em Testes/src/test/java ==="
-          sh 'find src/test/java -type f -name "*Test.java"'
-        }
-      }
-    }
+          script {
+            // Lista todos os testes terminados com *Test.java
+            def testes = sh(script: 'find src/test/java -name "*Test.java"', returnStdout: true).trim().split("\n")
 
-    // Build e execução de todos os testes, incluindo tudo que termine em *Test.java
-    stage('Build & Run All Tests') {
-      steps {
-        dir('Testes') {
-          echo "Executando mvn clean test com inclusão explícita de *Test.java"
-          // -Dsurefire.includes=**/*Test.java força o Surefire a rodar todas as classes terminadas em Test.java
-          sh 'mvn clean test -Dsurefire.includes="**/*Test.java"'
+            for (teste in testes) {
+              // Converte caminho para nome da classe
+              def classe = teste
+                .replace("src/test/java/", "")
+                .replace(".java", "")
+                .replace("/", ".")
+
+              echo "🟦 Iniciando teste: ${classe}"
+
+              sh """
+                mvn -Dtest=${classe} test
+              """
+
+              echo "✅ Finalizado teste: ${classe}"
+            }
+          }
         }
       }
     }
@@ -43,10 +38,10 @@ pipeline {
 
   post {
     always {
-      echo "===== Fim da execução de mvn clean test ====="
+      echo "===== Fim da execução dos testes individuais ====="
     }
     failure {
-      echo "Algum teste falhou. Verifique o console para detalhes."
+      echo "Algum teste falhou. Verifique o log para detalhes."
     }
     success {
       echo "Todos os testes passaram com sucesso."
